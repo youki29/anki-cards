@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>暗記カード（地理・生物基礎）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#D7DFE6; --surface:#EEF2F5; --text:#1F2A36; --sub:#5C6875;
+  --card:#FFFFFF; --card-ink:#1F2A36; --card-sub:#7A8591; --red:#D6141C;
+  --ring:#9EA8B2; --line:#C3CDD6; --chip-on:#1F2A36; --chip-on-text:#FFFFFF;
+  --ok:#1E7A4C; --edge:#E9EDF0;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151A20; --surface:#222A33; --text:#E4E9EE; --sub:#9AA6B2;
+    --card:#ECEEEA; --card-ink:#1F2A36; --card-sub:#6E7884; --red:#C4121A;
+    --ring:#7D8791; --line:#36414C; --chip-on:#E4E9EE; --chip-on-text:#151A20;
+    --ok:#4FBF86; --edge:#C9CDC6; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151A20; --surface:#222A33; --text:#E4E9EE; --sub:#9AA6B2;
+  --card:#ECEEEA; --card-ink:#1F2A36; --card-sub:#6E7884; --red:#C4121A;
+  --ring:#7D8791; --line:#36414C; --chip-on:#E4E9EE; --chip-on-text:#151A20;
+  --ok:#4FBF86; --edge:#C9CDC6; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--text);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  -webkit-tap-highlight-color:transparent}
+.app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;padding:12px 16px 14px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-size:17px;font-weight:700;margin:4px 0 10px;letter-spacing:.02em}
+.known{font-size:13px;color:var(--sub);white-space:nowrap}
+.known b{color:var(--ok);font-weight:700}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--text);
+  font:inherit;font-size:13px;padding:6px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-text);border-color:var(--chip-on)}
+.opts{display:flex;gap:6px;margin:4px 0 0}
+.opt{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;
+  font-size:13px;padding:8px 6px;border-radius:10px;cursor:pointer}
+.opt[aria-pressed="true"]{border-color:var(--text);font-weight:700}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 4px 8px;min-height:0}
+.deck{position:relative;width:100%;max-width:440px;aspect-ratio:1.55/1;max-height:100%;perspective:1400px;touch-action:pan-y}
+.deck::before,.deck::after{content:"";position:absolute;inset:0;background:var(--edge);border-radius:6px;
+  box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.deck::before{transform:translate(6px,7px) rotate(1.4deg)}
+.deck::after{transform:translate(3px,3px) rotate(-.8deg)}
+.deck.empty::before,.deck.empty::after{display:none}
+.card{position:absolute;inset:0;z-index:1;cursor:pointer;transform-style:preserve-3d;
+  transition:transform .45s cubic-bezier(.3,.7,.2,1)}
+.card.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--card);color:var(--card-ink);border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.14);
+  display:flex;flex-direction:column;padding:18px 22px 16px 54px;overflow:hidden}
+.back{transform:rotateY(180deg)}
+.tag{font-size:12px;color:var(--card-sub);display:flex;justify-content:space-between}
+.tag .mark{color:var(--ok);font-weight:700}
+.q{flex:1;display:flex;align-items:center;font-size:clamp(17px,4.8vw,21px);line-height:1.55;font-weight:500;overflow-wrap:anywhere}
+.small-q{font-size:13px;color:var(--card-sub);line-height:1.45;margin-top:6px}
+.a{flex:1;display:flex;align-items:center;font-family:"Klee One","Zen Kaku Gothic New",cursive;font-weight:600;
+  color:var(--red);font-size:clamp(20px,6vw,28px);line-height:1.4;overflow-wrap:anywhere}
+.hint{font-size:11px;color:var(--card-sub);text-align:right}
+/* ring hole + metal ring, fixed while card flips */
+.hole{position:absolute;z-index:3;left:16px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;
+  background:var(--bg);box-shadow:inset 0 1px 2px rgba(0,0,0,.35);pointer-events:none}
+.ring{position:absolute;z-index:4;left:6px;top:50%;width:28px;height:44px;margin-top:-22px;border-radius:50%;
+  border:3px solid var(--ring);border-right-color:transparent;transform:rotate(-8deg);pointer-events:none}
+.empty-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:10px;color:var(--sub);font-size:15px;padding:20px}
+.empty-msg button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);
+  padding:8px 14px;border-radius:10px;cursor:pointer}
+.count{text-align:center;font-size:13px;color:var(--sub);margin:6px 0 10px}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.controls{display:grid;grid-template-columns:52px 1fr 1fr 52px;gap:8px}
+.controls button{font:inherit;font-size:15px;border-radius:12px;padding:12px 6px;cursor:pointer;border:1px solid var(--line);
+  background:var(--surface);color:var(--text)}
+.controls .got{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
+.controls .again{font-weight:700}
+button:focus-visible,.card:focus-visible{outline:3px solid #3A7BD5;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.card,.bar i{transition:none}}
+@media (min-height:760px){.stage{padding-top:28px}}
+</style>
+<style>
+.subjects{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0 0 10px}
+.subj{font:inherit;font-size:14px;padding:9px 6px;border:0;background:var(--surface);color:var(--text);cursor:pointer}
+.subj[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-text);font-weight:700}
+.subj small{display:block;font-size:11px;opacity:.75;font-weight:400}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 id="h1">暗記カード</h1>
+    <div class="known">覚えた <b id="knownNum">0</b>/<span id="totalNum">0</span></div>
+  </header>
+  <div class="subjects" role="group" aria-label="科目を選ぶ"><button class="subj" data-s="chiri">地理<small>民族と宗教</small></button><button class="subj" data-s="bio">生物基礎<small>体内環境の維持</small></button></div>
+  <div class="chips" id="chips" role="group" aria-label="プリントを選ぶ"></div>
+  <div class="opts">
+    <button class="opt" id="onlyLeft" aria-pressed="false">まだのカードだけ</button>
+    <button class="opt" id="shuffle" aria-pressed="false">シャッフル</button>
+    <button class="opt" id="reverse" aria-pressed="false">答え→問題</button>
+  </div>
+
+  <div class="stage">
+    <div class="deck" id="deck">
+      <div class="card" id="card" tabindex="0" role="button" aria-label="タップでめくる">
+        <div class="face front">
+          <div class="tag"><span id="fTag"></span><span class="mark" id="fMark"></span></div>
+          <div class="q" id="fText"></div>
+          <div class="hint">タップでめくる</div>
+        </div>
+        <div class="face back">
+          <div class="tag"><span id="bTag"></span><span class="mark" id="bMark"></span></div>
+          <div class="small-q" id="bSmall"></div>
+          <div class="a" id="bText"></div>
+        </div>
+      </div>
+      <div class="hole"></div><div class="ring"></div>
+      <div class="empty-msg" id="emptyMsg" hidden>
+        <div>このプリントのカードは全部覚えました。</div>
+        <button id="showAll">すべてのカードを表示</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="count" id="count"></div>
+  <div class="bar"><i id="barFill"></i></div>
+  <div class="controls">
+    <button id="prev" aria-label="前のカード">←</button>
+    <button class="again" id="again">まだ</button>
+    <button class="got" id="got">覚えた</button>
+    <button id="next" aria-label="次のカード">→</button>
+  </div>
+</div>
+
+<script>
+const SUBJECTS={
+ chiri:{name:"地理",prefix:"プリント",key:"chiri-cards-v1",titles:{32:"人種の移動",33:"民族・公用語",34:"民族分類・世界の宗教",35:"キリスト教",36:"正教会・ヨーロッパ",37:"イスラーム",38:"イスラーム分布・ユダヤ教",39:"一神教・エルサレム",40:"仏教",41:"ヒンドゥー教",42:"南アジア・印パ戦争"},raw:{
+32:[
+["コロンブスがアメリカ大陸に到達した年は？","1492年"],
+["コロンブスが実際に到着した島は？","サンサルバドル島"],
+["イギリス人（アングロサクソン系）が移住した北アメリカを何と呼ぶ？","アングロアメリカ"],
+["アングロサクソン系が移住した、北アメリカ以外の3地域は？","南アフリカ・オーストラリア・ニュージーランド"],
+["スペイン人・ポルトガル人は何系の民族？","ラテン系"],
+["メキシコ以南のアメリカを何と呼ぶ？","ラテンアメリカ"],
+["17世紀〜ロシア人が移住した地域は？","シベリア"],
+["奴隷として強制連行されたアフリカ系人種は、どこの周辺の人々？","ギニア湾周辺"],
+["アフリカ系人種はどこの労働力として連行された？","プランテーション農園"],
+["ヨーロッパ・アフリカ・アメリカを結んだ奴隷貿易を何という？","三角貿易"],
+["USA南部のプランテーションで栽培された作物は？","綿花"],
+["カリブ海・ブラジルで栽培された作物は？","サトウキビ・コーヒー"],
+["ウサイン・ボルトの国籍は？","ジャマイカ"],
+["ネイマールの国籍は？","ブラジル"]
+],
+33:[
+["同じ○○を話す人たちは同じ民族と考えられる。○○は？","言語"],
+["国や地域をまとめるために使う共通の言語を何という？","公用語"],
+["多言語国家インドで、共通理解のために公用語になっているヨーロッパの言語は？","英語"],
+["約80か国で公用語になっている言語は？","英語"],
+["約50か国で公用語になっている言語は？","フランス語"],
+["27か国で公用語になっている言語は？","アラビア語"],
+["多言語国家で少数民族が求めることがあるのは？","独立や自治"],
+["イギリス（スコットランド・ウェールズ）の少数言語は？","ゲール語（ケルト語）"],
+["スペインの少数言語は？","カタルーニャ語"],
+["カナダの公用語は？","英語・フランス語"],
+["スイスの公用語は？","ドイツ語・フランス語・イタリア語"],
+["ベルギーの公用語は？","オランダ語・フランス語"],
+["母語人口が世界1位の言語は？","中国語（12.8億人）"],
+["母語人口が世界2位の言語は？","スペイン語（4.3億人）"],
+["中国以外で中国語が公用語の地域は？","台湾・シンガポール"],
+["ヒンディー語・ベンガル語が公用語の国は？","インド（公用語が22ある）"],
+["ポルトガル語が公用語の南アメリカの国は？","ブラジル"],
+["イスラームを信仰する上で重要な言語は？","アラビア語"]
+],
+34:[
+["北ヨーロッパの民族（語派）は？","ゲルマン語派"],
+["南ヨーロッパの民族（語派）は？","ラテン語派"],
+["東ヨーロッパの民族（語派）は？","スラブ語派"],
+["ゲルマン語派の国を4つ","イギリス・ドイツ・オランダ・スウェーデン"],
+["ラテン語派の国を4つ","イタリア・フランス・スペイン・ポルトガル"],
+["ロシア・ウクライナ・ブルガリアで使う文字は？","キリル文字"],
+["アイルランド・スコットランドの民族は？","ケルト人"],
+["スペインの少数民族を2つ","カタルーニャ人・バスク人"],
+["スカンディナビア半島北部の少数民族は？","サーミ人"],
+["言語学的にはアジア系の国を2つ","フィンランド・ハンガリー"],
+["イランで話されている言語は？","ペルシア語"],
+["ユダヤ人の言語は？","ヘブライ語"],
+["信者数が世界1位の宗教は？","キリスト教（31.1%）"],
+["信者数が世界2位の宗教は？","イスラーム（24.9%）"],
+["信者数が世界3位の宗教は？","ヒンドゥー教（15.2%）"],
+["信者数が世界4位の宗教は？","仏教（6.6%）"],
+["キリスト教で最も多い宗派は？","カトリック（50.7%）"],
+["イスラームの多数派の宗派は？","スンニ派（85%）"],
+["仏教で多い宗派は？（56%）","大乗仏教"]
+],
+35:[
+["キリスト教が生まれた地方は？","パレスチナ地方"],
+["イエスはもともと何教徒？","ユダヤ教徒"],
+["4世紀末に東西に分裂した帝国は？","ローマ帝国"],
+["西ローマ帝国の中心都市は？","ローマ"],
+["東ローマ帝国の中心都市は？","コンスタンティノープル（現イスタンブール）"],
+["西ローマ側の教会が信者獲得のために解禁したものは？","偶像崇拝"],
+["Catholic（カトリック）の意味は？","普遍的な（みんなの）"],
+["Orthodox（正統派）を日本語で何という？","正教会"],
+["16世紀にカトリックが販売したものは？","免罪符"],
+["免罪符の販売に抗議した集団は？","プロテスタント（抗議する者）"],
+["カトリックの総本山は？","バチカン市国（イタリアのローマ）"],
+["カトリックの最高指導者は？","ローマ教皇（法王）"],
+["カトリックが広まったアメリカは？","ラテンアメリカ"],
+["プロテスタントが教会より重視するものは？","聖書"],
+["プロテスタントが多いのはどの地域・民族？","北ヨーロッパのゲルマン民族"],
+["プロテスタントが広まったアメリカは？","アングロアメリカ"],
+["カトリックの信者数は？","約14.2億人"],
+["正教会の信者数は？","約2.9億人"]
+],
+36:[
+["正教会で認められた聖像画を何という？","イコン"],
+["正教会が多いのはヨーロッパのどこ？","東ヨーロッパ"],
+["国ごとにある正教会の例を3つ","ロシア・ギリシャ・ブルガリア"],
+["玉ねぎ型ドームが特徴の教会は？","ロシア正教会"],
+["原則：ゲルマン民族の宗派は？","プロテスタント"],
+["原則：ラテン民族の宗派は？","カトリック"],
+["原則：スラブ民族の宗派は？","正教会"],
+["例外：ラテンなのに正教会の国は？","ルーマニア"],
+["例外：ゲルマンなのにカトリックの地域は？","オーストリア・ドイツ南部"],
+["例外：スラブなのにカトリックの国は？","ポーランド・チェコ・スロバキア"],
+["ありえないパターン：スラブ・ラテンで○○、ゲルマンで○○","プロテスタント／正教会"]
+],
+37:[
+["イスラームが始まった都市は？","メッカ（現サウジアラビア）"],
+["イスラームを始めた預言者は？","ムハンマド"],
+["イスラームの唯一神は？","アッラー"],
+["アッラーはユダヤ教・キリスト教の何と同じ神？","ヤハウェ"],
+["イスラームは何世紀に、何人によって始まった？","7世紀・アラブ人"],
+["キリスト教は何世紀に、何人のイエスによって始まった？","1世紀・ユダヤ人"],
+["イスラームの聖典は？","クルアーン（コーラン）"],
+["クルアーンは何語で書かれている？","アラビア語"],
+["イスラーム教徒のことを何という？","ムスリム"],
+["ムスリムの義務である5つの行いを何という？","五行"],
+["五行を5つ","信仰告白・礼拝・喜捨・断食・巡礼"],
+["礼拝は1日何回、どこの方向に？","5回・聖地メッカの方向"],
+["喜捨とは？","財産の一部を貧しい人にほどこすこと"],
+["断食を行う月は？","ラマダン（イスラム暦9月）"],
+["断食で飲食しないのはいつ？","日の出から日没までの間"],
+["巡礼で訪れるメッカの神殿は？","カーバ神殿"],
+["「禁止」をアラビア語で何という？","ハラーム"],
+["「許可」をアラビア語で何という？","ハラール"],
+["イスラームで禁止されている飲食物は？","酒・豚肉"],
+["女性の外出時に禁止されている服装は？","肌や頭部が見える服装"],
+["ムスリムの90%を占める宗派は？","スンニ派（スンナ派）"],
+["ムスリムの10%を占める宗派は？","シーア派"],
+["シーア派が多い国は？","イラン（イラク）"],
+["イスラームが2派に分裂したきっかけは？","4代目カリフのアリーが暗殺されたこと"]
+],
+38:[
+["イスラーム寺院を何という？","モスク"],
+["「集団礼拝」が行われる安息日は何曜日？","金曜日"],
+["国旗にシャハーダが書かれた国は？","サウジアラビア"],
+["シーア派の中心地の国は？","イラン"],
+["中国でムスリムが多い地域は？","新疆ウイグル自治区"],
+["ムスリム人口が世界1位の国は？","インドネシア"],
+["少数派だが1.2億人のムスリムがいる国は？","インド"],
+["ユダヤ教信者が最も多い国は？","イスラエル（600万人）"],
+["ユダヤ教信者が2番目に多い国は？","USA（500万人）"],
+["ユダヤ教の信者数が少ない理由は？","ユダヤ人の民族宗教だから"],
+["ユダヤ教以前、世界の宗教はほぼ何だった？","多神教"],
+["ユダヤ人がすがった唯一絶対の神は？","ヤハウェ"],
+["唯一の神を信じる宗教を何という？","一神教"],
+["ユダヤ教から生まれた、神を像や絵にしてはいけない教えは？","偶像崇拝禁止"],
+["神と契約したユダヤ人が救われるという考えを何という？","選民思想"]
+],
+39:[
+["ユダヤ教の会堂を何という？","シナゴーグ"],
+["ユダヤ教の安息日は？","土曜日"],
+["キリスト教の安息日は？理由も","日曜日（イエスが復活した日）"],
+["イスラームの安息日は？理由も","金曜日（ムハンマドがメッカを脱出した日）"],
+["ユダヤ教の聖典は？","トーラー"],
+["神から十戒を授かった預言者は？","モーセ"],
+["モーセが神から授かったものは？","十戒"],
+["キリスト教徒・ムスリムはトーラーを何と呼ぶ？","旧約聖書"],
+["キリスト教の聖典は？","旧約聖書＋新約聖書"],
+["イスラームの聖典は？（旧約聖書＋○○）","クルアーン"],
+["神がユダヤ人に約束した地カナンは、現在何と呼ばれる？","パレスチナ"],
+["1948年に建国されたユダヤ人国家は？","イスラエル"],
+["イスラエル建国前からそこに住んでいたのは？","アラブ人（ムスリム）"],
+["3宗教の聖地が隣接する中心都市は？","エルサレム"],
+["土地と聖地を巡る争いを何という？","パレスチナ紛争（中東紛争）"],
+["パレスチナ紛争のうち、現在の紛争は？","ガザ紛争"],
+["ユダヤ教の聖地で、大神殿の残った西の壁は？","嘆きの壁"],
+["聖墳墓教会には何がある？","イエスの墓"],
+["ムハンマドが神の声を聴いた岩の上に建てられたのは？","岩のドーム"],
+["カトリックの聖地は？","ローマ"],
+["イスラームが始まった聖地は？","メッカ"]
+],
+40:[
+["仏教はだれの教え？","ブッダ"],
+["ブッダの本名は？","ガウタマ・シッダールタ"],
+["仏教が生まれた時期と国は？","紀元前5世紀・インド"],
+["修行によって至る自己の悟りを何という？","解脱"],
+["各個人が修行で解脱を目指す仏教は？","上座部仏教"],
+["上座部仏教の別名は？","南伝仏教"],
+["上座部仏教が広まった国は？","スリランカ・ミャンマー・タイ・ラオス・カンボジア"],
+["僧侶が生きとし生けるものを救済する仏教は？","大乗仏教"],
+["大乗仏教の別名は？","北伝仏教"],
+["大乗仏教が広まった国は？","中国・日本（朝鮮半島）"],
+["東南アジアで唯一、大乗仏教の国は？","ベトナム"],
+["日本独自の民族宗教は？","神道"],
+["中国（漢民族）の民族宗教は？","道教"],
+["生き仏のラマを崇拝する仏教は？","チベット仏教（ラマ教）"],
+["チベット仏教の聖地は？","ラサ（チベット自治区）"],
+["チベット仏教が広まった国・地域は？","チベット自治区・モンゴル・内モンゴル・ブータン"],
+["ブッダが悟りを開いたインドの聖地は？","ブッダガヤ"],
+["フィリピンで多い宗教は？","キリスト教カトリック"],
+["フィリピンで唯一イスラームが多い島は？","ミンダナオ島"]
+],
+41:[
+["ヒンドゥー教のもとになった宗教は？","バラモン教"],
+["バラモン教に反発して生まれた宗教は？","仏教・ジャイナ教"],
+["インドのヒンドゥー教徒は約何億人？","約11億人（インド人の80%）"],
+["インド全体の仏教徒の割合は？","0.6%"],
+["ヒンドゥー教は一神教？多神教？","多神教"],
+["ヒンドゥー教の神を2つ","シヴァ・ガネーシャ"],
+["ヒンドゥー教と結びつきが強い伝統的制度は？","カースト制度"],
+["不浄の手とされるのは？","左手"],
+["「聖なるもの」とされ、肉を食べない動物は？","牛"],
+["ヒンドゥー教徒にとって聖なる川は？","ガンジス川"],
+["古代文明（モヘンジョダロなど）を生んだ川は？","インダス川"],
+["ヒンドゥー教徒最大の聖地は？","ヴァラナシ"],
+["ガンジス川で身を清める行為を何という？","沐浴"],
+["ヒンドゥー教徒は墓を作らず、どうする？","遺灰をガンジス川に流す"],
+["古代バラモン教の身分制度は？","ヴァルナ"],
+["ヴァルナの元の意味は？","肌の色"],
+["ヴァルナの4つの身分は？","バラモン・クシャトリヤ・ヴァイシャ・シュードラ"],
+["3000以上ある社会集団（職業）を何という？","ジャーティ"],
+["インドの憲法で禁止されているのは？","カーストによる差別"],
+["「カースト」は何人の言葉？","ポルトガル人"]
+],
+42:[
+["カンボジアで多数の宗教は？","上座部仏教"],
+["12世紀にヒンドゥー教寺院として建設されたカンボジアの寺院は？","アンコールワット"],
+["インドネシアのムスリムは約何億人？","約2.4億人（人口の87%）"],
+["インドネシアでヒンドゥー教の島は？","バリ島"],
+["ターバンを巻いているのは何教？","シーク教"],
+["地図帳で着色されていない、帰属が決まっていない地方は？","カシミール地方"],
+["パキスタンで多い宗教は？","イスラーム（96%）"],
+["バングラデシュで多い宗教は？","イスラーム（90%）"],
+["スリランカで多い宗教は？","上座部仏教（70%）"],
+["ネパールで多い宗教は？","ヒンドゥー教（81%）"],
+["ブータンで多い宗教は？","チベット仏教（70%）"],
+["ムスリム人口が世界2位の国は？","パキスタン"],
+["17世紀〜「1つのインド」を支配した国は？","イギリス"],
+["1947年の独立で、ムスリムの多い地域はどこになった？","パキスタン（西＋東パキスタン）"],
+["1947年の独立で、ヒンドゥーの多い地域はどこになった？","インド"],
+["カシミールの藩主は何教徒で、どこへの帰属を決めた？","ヒンドゥー教徒・インド"],
+["カシミール帰属をめぐって起きた戦争は？","印パ戦争"],
+["1971年、東パキスタンが独立してできた国は？","バングラデシュ"],
+["バングラデシュ独立のとき、インドはどちら側に立った？","東パキスタン側"],
+["仏教徒の多いセイロン島が1972年に独立してできた国は？","スリランカ"]
+]}},
+ bio:{name:"生物基礎",prefix:"3-",key:"bio-cards-v1",titles:{1:"恒常性と神経系",2:"恒常性と内分泌系",3:"ホルモン分泌・血糖濃度①",4:"血糖濃度②・腎臓",5:"血液・体温の調節"},raw:{
+1:[
+["生物体内の細胞を取り巻く環境を何という？","体内環境"],
+["ヒトの多くの細胞は何に浸されている？","体液"],
+["体内環境を一定の範囲に保つ性質を何という？","恒常性（ホメオスタシス）"],
+["恒常性は主に何と何によって調節される？","自律神経系と内分泌系"],
+["体液の3つは？","血液・組織液・リンパ液"],
+["血しょうが毛細血管からしみ出したもので、組織の細胞を取り巻く体液は？","組織液"],
+["組織液の一部がリンパ管に入ったものは？","リンパ液"],
+["リンパ管は何と合流する？","鎖骨下静脈"],
+["神経系を構成する神経細胞を何という？","ニューロン"],
+["中枢神経系は何と何？","脳と脊髄"],
+["末梢神経系の2つは？","体性神経系と自律神経系"],
+["体性神経系の2つは？","感覚神経・運動神経"],
+["自律神経系の2つは？","交感神経・副交感神経"],
+["意識や思考の中枢は？","大脳"],
+["大脳の機能だけが消失した状態は？","植物状態"],
+["生命維持の中枢部位をまとめて何という？","脳幹（間脳・中脳・延髄）"],
+["自律神経系の総合的な中枢は？","間脳の視床下部"],
+["自律神経系は意思と関係ある？","無関係（意思とは関係なく働く）"],
+["興奮状態で働きが優位になる神経は？","交感神経"],
+["リラックス状態で働きが優位になる神経は？","副交感神経"],
+["交感神経の中枢神経系からの出どころは？","脊髄"],
+["副交感神経の中枢神経系からの出どころは？","中脳・延髄・脊髄の尾部"],
+["自律神経系は器官に直接作用するので、働きは速い？遅い？","速く働く"],
+["瞳孔：交感神経／副交感神経のはたらきは？","拡大／縮小"],
+["汗腺（発汗）・立毛筋・体表の血管に分布している自律神経は？","交感神経だけ（副交感神経は分布していない）"],
+["心臓の拍動：交感神経／副交感神経は？","促進／抑制"],
+["血圧：交感神経／副交感神経は？","上げる／下げる"],
+["気管支：交感神経／副交感神経は？","拡張／収縮"],
+["消化管の運動：交感神経／副交感神経は？","抑制／促進"],
+["排尿：交感神経／副交感神経は？","抑制／促進"],
+["交感神経と副交感神経は、同じ器官で反対の働きをする。これを何という？","拮抗的に作用する"],
+["心臓が自発的に拍動するための部位は？","ペースメーカー（洞房結節）"],
+["ペースメーカーはどこにある？","右心房と大静脈の境界付近"],
+["心臓の拍動の中枢は？","延髄"],
+["トイレに行きたくなる。優位なのは？","副交感神経"],
+["呼吸が荒くなる・冷汗が出る・心臓がドキドキする。優位なのは？","交感神経"],
+["消化液が分泌される。優位なのは？","副交感神経"]
+],
+2:[
+["化学物質を分泌する細胞（腺細胞）の集まりを何という？","腺"],
+["排出管を通して体外に化学物質を放出する腺は？","外分泌腺"],
+["外分泌腺の分泌物の例は？","汗・消化液"],
+["血液中に化学物質を放出する腺は？","内分泌腺"],
+["内分泌腺の分泌物は？","ホルモン"],
+["ホルモンは何の循環で全身へ送られる？","血液"],
+["ホルモンが作用する特定の細胞は？","標的細胞"],
+["ホルモンによる調節を受ける器官は？","標的器官"],
+["標的細胞がもつ、特定のホルモンと結合するものは？","受容体"],
+["ホルモンはどれくらいの量で作用する？","微量"],
+["自律神経系と比べたホルモンの特徴は？","効果が現れるまで時間はかかるが、作用に持続性がある"],
+["ホルモン分泌の総合的な中枢は？","間脳の視床下部"],
+["脳の神経細胞がホルモンを分泌する現象は？","神経分泌"],
+["ホルモンを分泌する神経細胞は？","神経分泌細胞"],
+["視床下部から出て、脳下垂体前葉のホルモン分泌を調節するホルモンは？","放出ホルモン・放出抑制ホルモン"],
+["脳下垂体前葉から出て、タンパク質の合成と血糖濃度上昇を促進するホルモンは？","成長ホルモン"],
+["脳下垂体前葉から出て、甲状腺のホルモン分泌を促進するホルモンは？","甲状腺刺激ホルモン"],
+["脳下垂体前葉から出て、副腎皮質のホルモン分泌を促進するホルモンは？","副腎皮質刺激ホルモン"],
+["脳下垂体後葉から出るホルモンは？","バソプレシン"],
+["バソプレシンの働きは？","腎臓の集合管で水の再吸収を促進・血圧上昇"],
+["甲状腺から出るホルモンは？","チロキシン"],
+["チロキシンの働きは？","代謝の促進"],
+["副甲状腺から出るホルモンは？","パラトルモン"],
+["パラトルモンの働きは？","血液中のCa²⁺濃度の上昇を促進"],
+["副腎髄質から出るホルモンは？","アドレナリン"],
+["アドレナリンの働きは？","交感神経の作用を強める・グリコーゲンの分解促進（血糖濃度上昇）"],
+["副腎皮質から出て、タンパク質から糖をつくるホルモンは？","糖質コルチコイド"],
+["副腎皮質から出て、体液中のNa⁺やK⁺濃度を調節するホルモンは？","鉱質コルチコイド"],
+["すい臓でホルモンを分泌する部分は？","ランゲルハンス島"],
+["ランゲルハンス島A細胞から出るホルモンは？","グルカゴン"],
+["ランゲルハンス島B細胞から出るホルモンは？","インスリン"],
+["グルカゴンの働きは？","グリコーゲンの分解促進 → 血糖濃度上昇"],
+["インスリンの働きは？","グリコーゲンの合成促進 → 血糖濃度低下"],
+["副腎の外側と内側はそれぞれ何？","外側：皮質／内側：髄質"]
+],
+3:[
+["結果が原因にさかのぼって作用することを何という？","フィードバック"],
+["結果を反対の方向に進める作用は？","負のフィードバック"],
+["チロキシン不足のとき、視床下部が分泌するホルモンは？","甲状腺刺激ホルモン放出ホルモン"],
+["チロキシン不足のとき、脳下垂体前葉が分泌するホルモンは？","甲状腺刺激ホルモン"],
+["チロキシンが増えすぎると、視床下部や脳下垂体はどうなる？","分泌が抑えられる（負のフィードバック）"],
+["バソプレシンをつくるのはどこの何細胞？","視床下部の神経分泌細胞"],
+["バソプレシンを分泌するのは？","脳下垂体後葉"],
+["血液中の物質濃度が上昇したとき、バソプレシンは腎臓の集合管で何を促進する？","水の再吸収"],
+["血糖とは血液中の何？","グルコース"],
+["血糖濃度の調節にかかわる器官は？","肝臓や筋肉"],
+["心臓から出た血液が肝臓へ流れる血管は？","肝動脈"],
+["肝臓から心臓へ戻る血液が流れる血管は？","肝静脈"],
+["小腸などの消化管の静脈が集まり、吸収した物質を肝臓へ運ぶ血管は？","肝門脈"],
+["空腹時の血糖濃度の正常値は？","血液100mL中に約100mg（約0.1%）"],
+["グルコースが枝分かれして結合したものは？","グリコーゲン"],
+["高血糖時、肝細胞ではどうなる？","グルコースからグリコーゲンを合成 → 血糖濃度低下"],
+["低血糖時、肝細胞ではどうなる？","グリコーゲンを分解 → 血糖濃度上昇"],
+["高血糖を感知する中枢は？","間脳の視床下部（すい臓のランゲルハンス島も感知）"],
+["高血糖時に情報を伝える自律神経は？","副交感神経"],
+["高血糖時に分泌されるホルモンと分泌する細胞は？","インスリン（ランゲルハンス島B細胞）"],
+["インスリンが血糖濃度を下げる方法2つ","肝臓でグリコーゲンを合成・体の各細胞でグルコースの消費を促進"],
+["低血糖時に情報を伝える自律神経は？","交感神経"],
+["低血糖時に副腎髄質から出るホルモンは？","アドレナリン"],
+["低血糖時にランゲルハンス島A細胞から出るホルモンは？","グルカゴン"],
+["アドレナリン・グルカゴンが血糖濃度を上げる方法は？","主に肝臓でグリコーゲンを分解"],
+["極度の低血糖時、脳下垂体前葉から出るホルモンは？","副腎皮質刺激ホルモン"],
+["極度の低血糖時、副腎皮質から出るホルモンは？","糖質コルチコイド"],
+["糖質コルチコイドが血糖濃度を上げる方法は？","タンパク質の糖化"],
+["肝臓の基本単位は？","肝小葉（約50万個の肝細胞からなる）"],
+["肝臓全体で肝小葉はいくつ？","約50万個"],
+["タンパク質の分解で生じる有害なアンモニアを、肝臓は何に変える？","尿素"],
+["肝臓が有害な物質を無害にする作用は？","解毒作用"],
+["肝臓でつくられ、胆のうに蓄えられる液体は？","胆汁"],
+["胆汁が通る管と、蓄えられる場所は？","胆管・胆のう"],
+["胆汁の働きは？","十二指腸へ分泌され、脂肪の消化を助ける"],
+["肝臓がさまざまな代謝で熱を多く出すことでしていることは？","体温保持"]
+],
+4:[
+["血糖濃度が高い状態が続く病気は？","糖尿病"],
+["血糖濃度が一定以上になると、グルコースはどうなる？","尿中に排出される"],
+["すい臓のランゲルハンス島B細胞が破壊されて起こる糖尿病は？","Ⅰ型糖尿病"],
+["Ⅰ型糖尿病の原因と治療は？","インスリンの不足（治療：インスリンの投与）"],
+["主に生活習慣が関係する糖尿病は？","Ⅱ型糖尿病"],
+["Ⅱ型糖尿病の原因は？","インスリンの分泌量の低下や、標的細胞の反応の低下"],
+["腎臓の基本単位は？","ネフロン（腎単位）"],
+["腎臓1個にネフロンはいくつ？","約100万個"],
+["腎小体は何と何からなる？","糸球体とボーマンのう"],
+["腎小体は腎臓の皮質側・髄質側のどちら？","皮質側"],
+["ボーマンのうからのびて集合管につながる管は？","細尿管"],
+["血液から原尿ができる過程は？","ろ過"],
+["ろ過はどこからどこへこし出される？","糸球体からボーマンのうへ"],
+["原尿から必要な成分を血液に戻す過程は？","再吸収"],
+["再吸収は、どこからどこへ戻される？","細尿管や集合管から毛細血管へ"],
+["ろ過されない物質は？","タンパク質・血球"],
+["原尿の成分のうち、すべて再吸収される物質は？","グルコース"],
+["水の再吸収に関与するホルモンは？","バソプレシン"],
+["Na⁺の再吸収に関与するホルモンは？","鉱質コルチコイド"],
+["1日の原尿の量は？","約180L"],
+["1日の尿の量は？","約1.44L"],
+["尿検査で正常なら、尿タンパク・尿糖・尿潜血は？","すべて（−）"]
+],
+5:[
+["ヒトの血液の総量は体重の約何%？","約8%"],
+["血液の重さの約55%を占める液体成分は？","血しょう"],
+["血しょうの働きは？","養分や老廃物などの運搬"],
+["血しょうの約90%は何？","水"],
+["血液の重さの約45%を占める細胞成分は？","血球"],
+["酸素を運搬する血球は？","赤血球"],
+["赤血球がもつ赤い色素タンパク質は？","ヘモグロビン"],
+["哺乳類の赤血球がもたないものは？","核"],
+["免疫に関与する血球は？","白血球"],
+["白血球の特徴は？","核をもつ・さまざまな種類がある・血管外にも存在"],
+["血液凝固に関与する血球は？","血小板"],
+["血小板の特徴は？","核をもたない細胞片"],
+["すべての血球はどこで何から作られる？","骨髄の造血幹細胞"],
+["出血したとき、最初に集まって傷口をふさぐのは？","血小板"],
+["血液凝固で働くイオンは？","カルシウムイオン"],
+["血液凝固に関与するホルモンは？","パラトルモン"],
+["フィブリンと血球が絡み合ったものは？","血ぺい"],
+["血ぺいをつくる繊維状タンパク質は？","フィブリン"],
+["血管が修復された後、血ぺいを酵素で取り除くことを何という？","線溶（フィブリン溶解）"],
+["採血した血液を放置したとき、沈殿するものは？","血ぺい"],
+["採血した血液を放置したときの上澄みは？","血清"],
+["血清とは？","血しょうからフィブリンの元が除かれた液体"],
+["低体温時の調節は何と何による？","自律神経系とホルモン"],
+["体温調節の中枢は？","間脳の視床下部"],
+["低体温時、皮膚の血管と立毛筋はどうなる？","収縮する"],
+["低体温時、心臓の拍動はどうなる？","促進"],
+["低体温時、副腎髄質から出るホルモンは？","アドレナリン"],
+["低体温時、甲状腺から出るホルモンは？","チロキシン"],
+["低体温時、肝臓・骨格筋はどうなる？","代謝が促進"],
+["低体温時、骨格筋の収縮で起こるものは？","ふるえ（運動神経による）"],
+["低体温時の放熱量と発熱量は？","放熱量は減・発熱量は増"],
+["高体温時の調節は何による？","自律神経系"],
+["高体温時、交感神経で促進されるのは？","発汗（汗腺）"],
+["高体温時、副交感神経で抑制されるのは？","心臓の拍動・肝臓の代謝"],
+["高体温時の放熱量と発熱量は？","放熱量は増・発熱量は減"]
+]}}
+};
+const $=id=>document.getElementById(id);
+const card=$("card");
+let subj="chiri";
+try{const s=localStorage.getItem("cards-subject");if(s&&SUBJECTS[s])subj=s;}catch(e){}
+let CARDS=[],known=new Set(),state={},list=[],idx=0;
+function S(){return SUBJECTS[subj]}
+function load(){
+  const sb=S();
+  CARDS=[];Object.keys(sb.raw).forEach(p=>sb.raw[p].forEach((c,i)=>CARDS.push({id:p+"-"+i,p:+p,q:c[0],a:c[1]})));
+  known=new Set();state={print:"all",onlyLeft:false,shuffle:false,reverse:false};
+  try{const s=JSON.parse(localStorage.getItem(sb.key)||"null");if(s){known=new Set(s.known||[]);Object.assign(state,s.state||{});}}catch(e){}
+  if(state.print!=="all"&&!sb.raw[state.print])state.print="all";
+}
+function save(){try{localStorage.setItem(S().key,JSON.stringify({known:[...known],state}));localStorage.setItem("cards-subject",subj);}catch(e){}}
+function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a}
+function scopeCards(){return CARDS.filter(c=>state.print==="all"||c.p===+state.print)}
+function build(){
+  let l=scopeCards();
+  if(state.onlyLeft)l=l.filter(c=>!known.has(c.id));
+  if(state.shuffle)l=shuffleArr(l.slice());
+  list=l;idx=0;render();
+}
+function render(){
+  card.classList.remove("flipped");
+  const empty=list.length===0;
+  $("emptyMsg").hidden=!empty;card.hidden=empty;$("deck").classList.toggle("empty",empty);
+  const scope=scopeCards(),kn=scope.filter(c=>known.has(c.id)).length;
+  $("knownNum").textContent=kn;$("totalNum").textContent=scope.length;
+  $("barFill").style.width=(scope.length?kn/scope.length*100:0)+"%";
+  $("count").textContent=empty?"":(idx+1)+" / "+list.length+" 枚";
+  ["prev","next","again","got"].forEach(b=>$(b).disabled=empty);
+  if(empty)return;
+  const c=list[idx],sb=S(),tag=sb.prefix+c.p+"　"+sb.titles[c.p],m=known.has(c.id)?"✓ 覚えた":"";
+  const front=state.reverse?c.a:c.q,back=state.reverse?c.q:c.a;
+  $("fTag").textContent=tag;$("bTag").textContent=tag;$("fMark").textContent=m;$("bMark").textContent=m;
+  $("fText").textContent=front;$("bSmall").textContent=front;$("bText").textContent=back;
+  $("fText").style.fontFamily=state.reverse?'"Klee One","Zen Kaku Gothic New",cursive':"";
+  $("fText").style.color=state.reverse?"var(--red)":"";
+}
+function flip(){if(list.length)card.classList.toggle("flipped")}
+function go(d){if(!list.length)return;idx=(idx+d+list.length)%list.length;render()}
+function mark(ok){
+  if(!list.length)return;const c=list[idx];
+  ok?known.add(c.id):known.delete(c.id);save();
+  if(state.onlyLeft&&ok){list.splice(idx,1);if(idx>=list.length)idx=0;render();}else go(1);
+}
+const chips=$("chips");
+function buildChips(){
+  chips.innerHTML="";const sb=S();
+  [["all","すべて"],...Object.keys(sb.raw).map(p=>[p,sb.prefix+p])].forEach(([v,l])=>{
+    const b=document.createElement("button");b.className="chip";b.textContent=l;b.dataset.v=v;
+    b.onclick=()=>{state.print=v;save();syncUI();build();};chips.appendChild(b);
+  });
+  chips.scrollLeft=0;
+}
+function syncUI(){
+  document.querySelectorAll(".subj").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===subj)));
+  chips.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(state.print))));
+  $("onlyLeft").setAttribute("aria-pressed",state.onlyLeft);
+  $("shuffle").setAttribute("aria-pressed",state.shuffle);
+  $("reverse").setAttribute("aria-pressed",state.reverse);
+  document.title=S().name+"｜暗記カード";
+}
+function switchTo(s){subj=s;load();save();buildChips();syncUI();build();}
+document.querySelectorAll(".subj").forEach(b=>b.onclick=()=>{if(b.dataset.s!==subj)switchTo(b.dataset.s)});
+$("onlyLeft").onclick=()=>{state.onlyLeft=!state.onlyLeft;save();syncUI();build();};
+$("shuffle").onclick=()=>{state.shuffle=!state.shuffle;save();syncUI();build();};
+$("reverse").onclick=()=>{state.reverse=!state.reverse;save();syncUI();render();};
+$("showAll").onclick=()=>{state.onlyLeft=false;save();syncUI();build();};
+$("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
+$("got").onclick=()=>mark(true);$("again").onclick=()=>mark(false);
+let sx=null,sy=null;
+card.addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;});
+card.addEventListener("pointerup",e=>{
+  if(sx===null)return;const dx=e.clientX-sx,dy=e.clientY-sy;sx=null;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){go(dx<0?1:-1);}else if(Math.abs(dx)<10&&Math.abs(dy)<10){flip();}
+});
+card.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}});
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="BUTTON"&&(e.key===" "||e.key==="Enter"))return;
+  if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1);
+  else if(e.key===" "){e.preventDefault();flip();}
+});
+switchTo(subj);
+</script>
+</body>
+</html>
